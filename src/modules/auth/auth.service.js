@@ -1,7 +1,12 @@
 import ApiError from "../../common/utils/api-error.js";
-import { generateResetToken } from "../../common/utils/jwt.utils.js";
+import { generateAccessToken, generateRefreshToken, generateResetToken, verifyRefreshToken } from "../../common/utils/jwt.utils.js";
 import User from "./auth.model.js"
 
+
+const hashToken = (token) => crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex")
 
 const register = async ({name, email, password, role}) => {
     //do user registration
@@ -32,4 +37,64 @@ const register = async ({name, email, password, role}) => {
 }
 
 
-export {register}
+const login = async ({email, password}) => {
+    // take email and find user in db
+    // check if password is correct
+    // check if verified or not
+
+    const user = await User.findOne({email}).select("+password");
+    if(!user) throw ApiError.unauthorized("Invalid email or password");
+
+    if(!user.isVerified) {
+        throw ApiError.forbidden("Please verify your email before logging in")
+    }
+
+    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = hashToken(refreshToken)
+
+    await user.save({ validateBeforeSave: false })
+
+    const userObj = user.toObject()
+    delete userObj.password
+    delete userObj.refreshToken
+
+    return {user: userObj, accessToken, refreshToken}
+
+
+}
+
+
+const refresh = async (token) => {
+    if(!token) throw ApiError.unauthorized("Refresh token missing");
+    const decoded = verifyRefreshToken(token);
+
+    const user = await User.findById(decoded._id).select("+refreshToken");
+
+    if(!user) throw ApiError.unauthorized("User not found");
+
+    if(user.refreshToken !== hashToken(token)) {
+        throw ApiError.unauthorized("Invalid refresh token");
+    }
+
+
+    const accessToken = generateAccessToken({ id: user._id, role: user.role })
+
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = hashToken(refreshToken)
+
+    await user.save({ validateBeforeSave: false })
+
+    const userObj = user.toObject()
+    delete userObj.password
+    delete userObj.refreshToken
+
+    return { accessToken, refreshToken }
+}
+
+export {
+    register,
+    login
+}
