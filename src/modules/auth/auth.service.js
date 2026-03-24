@@ -94,7 +94,13 @@ const refresh = async (token) => {
     return { accessToken, refreshToken }
 }
 
+
+const logout = async (userId) => {
+    await User.findByIdAndUpdate(userId, {refreshToken: null})
+}
+
 export {
     register,
-    login
+    login,
+    logout
 }
