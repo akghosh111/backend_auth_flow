@@ -1,3 +1,4 @@
+import { sendVerificationEmail } from "../../common/config/email.js";
 import ApiError from "../../common/utils/api-error.js";
 import { generateAccessToken, generateRefreshToken, generateResetToken, verifyRefreshToken } from "../../common/utils/jwt.utils.js";
 import User from "./auth.model.js"
@@ -25,8 +26,12 @@ const register = async ({name, email, password, role}) => {
         verificationToken: hashedToken
     })
 
-    // TODO: send an email to user with rawToken
-
+    // TODO: send an email to user with rawToken - done
+    try {
+        await sendVerificationEmail(email, token)
+    } catch (error) {
+        console.error(error)
+    }
 
     const userObj = user.toObject();
 
