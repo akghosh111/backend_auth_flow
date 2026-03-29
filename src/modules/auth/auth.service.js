@@ -115,10 +115,18 @@ const forgotPassword = async (email) => {
     await user.save();
 }
 
+
+const getMe = async(userId) => {
+    const user = await User.findById(userId);
+    if(!user) throw ApiError.notfound("User not found");
+    return user;
+}
+
 export {
     register,
     login,
     logout,
     refresh,
-    forgotPassword
+    forgotPassword,
+    getMe
 }

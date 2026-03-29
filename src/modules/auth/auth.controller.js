@@ -33,6 +33,11 @@ const logout = async() => {
 }
 
 
+const getMe = async() => {
+    const user = await authService.getMe(req.user.id);
+    ApiResponse.ok(res, "User Profile", user);
+}
 
 
-export {register, login, logout}
+
+export {register, login, logout, getMe}
