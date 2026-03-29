@@ -118,5 +118,7 @@ const forgotPassword = async (email) => {
 export {
     register,
     login,
-    logout
+    logout,
+    refresh,
+    forgotPassword
 }
