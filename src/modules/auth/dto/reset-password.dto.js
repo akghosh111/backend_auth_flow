@@ -6,11 +6,11 @@ class ResetPasswordDto extends BaseDto {
     password: Joi.string()
       .min(8)
       .pattern(/(?=.*[A-Z])(?=.*\d)/)
-      .message(
-        "Password must contain at least one uppercase letter and one digit",
-      )
+      .messages({ 'any.only': "Password must contain at least one uppercase letter and one digit", })
       .required(),
   });
 }
 
 export default ResetPasswordDto;
+
+

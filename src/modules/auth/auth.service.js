@@ -1,7 +1,11 @@
-import { sendVerificationEmail } from "../../common/config/email.js";
 import ApiError from "../../common/utils/api-error.js";
 import { generateAccessToken, generateRefreshToken, generateResetToken, verifyRefreshToken } from "../../common/utils/jwt.utils.js";
 import User from "./auth.model.js"
+import crypto from "crypto";
+import {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} from "../../common/config/email.js";
 
 
 const hashToken = (token) => crypto
@@ -11,6 +15,7 @@ const hashToken = (token) => crypto
 
 const register = async ({name, email, password, role}) => {
     //do user registration
+
 
 
     const existing = await User.findOne({email})
@@ -46,6 +51,10 @@ const verifyEmail = async (token) => {
     const hashedToken = hashToken(token);
     const user = await User.findOne({verificationToken: hashedToken}).select("+verificationToken");
 
+    if (!user) {
+        throw ApiError.badRequest("Invalid or expired verification token");
+    }
+
     user.isVerified = true;
     user.verificationToken = undefined;
     await user.save();
@@ -57,10 +66,12 @@ const login = async ({email, password}) => {
     // check if password is correct
     // check if verified or not
 
+
     const user = await User.findOne({email}).select("+password");
     if(!user) throw ApiError.unauthorized("Invalid email or password");
 
     const isMatch = await user.comparePassword(password);
+    
 
     if(!isMatch) throw ApiError.unauthorized("Invalid email or password");
 
@@ -89,7 +100,7 @@ const refresh = async (token) => {
     if(!token) throw ApiError.unauthorized("Refresh token missing");
     const decoded = verifyRefreshToken(token);
 
-    const user = await User.findById(decoded._id).select("+refreshToken");
+    const user = await User.findById(decoded.id).select("+refreshToken");
 
     if(!user) throw ApiError.unauthorized("User not found");
 
@@ -119,7 +130,7 @@ const logout = async (userId) => {
 }
 
 const forgotPassword = async (email) => {
-    const user = User.findOne({email})
+    const user = await User.findOne({email})
     if(!user) throw ApiError.notfound("No account with that email");
 
     const {rawToken, hashedToken} = generateResetToken();
@@ -128,7 +139,32 @@ const forgotPassword = async (email) => {
 
 
     await user.save();
+
+    try {
+        await sendResetPasswordEmail(email, rawToken);
+    } catch (err) {
+        console.error("Failed to send reset email:", err.message);
+    }
 }
+
+
+
+
+const resetPassword = async (token, newPassword) => {
+  const hashedToken = hashToken(token);
+
+  const user = await User.findOne({
+    resetPasswordtoken: hashedToken,
+    resetpasswordExpires: { $gt: Date.now() },
+  }).select("+resetPasswordtoken +resetpasswordExpires");
+
+  if (!user) throw ApiError.badRequest("Invalid or expired reset token");
+
+  user.password = newPassword;
+  user.resetPasswordtoken = undefined;
+  user.resetpasswordExpires = undefined;
+  await user.save();
+};
 
 
 const getMe = async(userId) => {
@@ -144,5 +180,6 @@ export {
     refresh,
     forgotPassword,
     getMe,
-    verifyEmail
+    verifyEmail,
+    resetPassword
 }

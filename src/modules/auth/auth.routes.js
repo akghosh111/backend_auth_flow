@@ -17,7 +17,7 @@ router.post("/logout", authenticate, controller.logout)
 router.get("/me", authenticate, controller.getMe)
 router.post("/refresh-token", controller.refreshToken)
 
-router.get("/verify-email/:token", controller.verifyEmail);
+router.get("/verify-email/:verificationToken", controller.verifyEmail);
 router.post(
   "/forgot-password",
   validate(ForgotPasswordDto),

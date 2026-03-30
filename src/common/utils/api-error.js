@@ -22,6 +22,10 @@ class ApiError extends Error {
         return new ApiError(412, message)
     }
 
+    static unauthorized(message =  "unauthorized") {
+        return new ApiError(401, message)
+    }
+
 
 }
 
