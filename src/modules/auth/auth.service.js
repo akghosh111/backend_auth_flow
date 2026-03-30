@@ -28,9 +28,9 @@ const register = async ({name, email, password, role}) => {
 
     // TODO: send an email to user with rawToken - done
     try {
-        await sendVerificationEmail(email, token)
-    } catch (error) {
-        console.error(error)
+        await sendVerificationEmail(email, rawToken)
+    } catch (err) {
+        console.error("Failed to send verification email", err.message);
     }
 
     const userObj = user.toObject();
@@ -41,6 +41,16 @@ const register = async ({name, email, password, role}) => {
     return userObj;
 }
 
+
+const verifyEmail = async (token) => {
+    const hashedToken = hashToken(token);
+    const user = await User.findOne({verificationToken: hashedToken}).select("+verificationToken");
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    await user.save();
+    return user;
+}
 
 const login = async ({email, password}) => {
     // take email and find user in db
@@ -133,5 +143,6 @@ export {
     logout,
     refresh,
     forgotPassword,
-    getMe
+    getMe,
+    verifyEmail
 }
